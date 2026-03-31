@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MasKultum</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --header-height: 60px;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #f8f9fa;
+            overflow: hidden; /* Mencegah scroll pada body */
+        }
+        /* Header Styling */
+        header {
+            height: var(--header-height);
+            background: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+        }
+        .logo {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #333;
+        }
+        .fav-counter {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: #ffebee;
+            color: #e91e63;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .fav-counter.active {
+            background: #e91e63;
+            color: white;
+        }
+
+        /* Card Container (Swipeable Area) */
+        #card-container {
+            margin-top: var(--header-height);
+            height: calc(100vh - var(--header-height));
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch; /* Untuk kelancaran di iOS */
+        }
+        /* Menyembunyikan scrollbar */
+        #card-container::-webkit-scrollbar {
+            display: none;
+        }
+        #card-container {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Card Item Styling */
+        .card-wrapper {
+            min-width: 100vw;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            scroll-snap-align: center;
+            padding: 20px;
+        }
+        /* Card Item Styling (Update) */
+       .card {
+            width: 100%;
+            max-width: 400px;
+            height: 75vh; 
+            border-radius: 20px;
+            padding: 70px 25px 50px 25px; 
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center;
+            text-align: center;
+            transition: transform 0.3s ease;
+            
+            /* TAMBAHKAN 2 BARIS INI UNTUK DEKORASI */
+            
+            background-repeat: repeat; /* Mengulang pola ke seluruh kartu */
+            background-blend-mode: overlay; /* Membaurkan bunga dengan warna pastel */
+        }
+        .card-text {
+            font-size: 1.05rem; /* Ukuran font dikecilkan agar pas untuk teks panjang */
+            color: #333;
+            line-height: 1.6; /* Jarak antar baris diperlebar agar mudah dibaca */
+            font-weight: 500;
+            max-height: 100%;
+            width: 100%;
+            overflow-y: auto; /* Memunculkan scroll otomatis JIKA teks kepanjangan */
+            
+            white-space: pre-wrap;
+            
+            /* Styling Scrollbar agar terlihat rapi (opsional) */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0,0,0,0.15) transparent;
+        }
+        /* Styling Scrollbar khusus untuk browser berbasis WebKit (Chrome/Safari) */
+        .card-text::-webkit-scrollbar {
+            width: 4px;
+        }
+        .card-text::-webkit-scrollbar-thumb {
+            background-color: rgba(0,0,0,0.15);
+            border-radius: 4px;
+        }
+        .card-number {
+            position: absolute;
+            bottom: 20px;
+            font-size: 0.9rem;
+            color: rgba(0,0,0,0.4);
+        }
+
+        /* Love Button */
+        .love-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.7);
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            color: #ccc;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            transition: 0.2s;
+        }
+        .love-btn.loved {
+            color: #e91e63;
+            animation: pop 0.3s ease;
+        }
+
+        /* Animasi pop saat tombol dilike */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        .empty-state {
+            width: 100vw;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #777;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">MasKultum</div>
+        <div class="fav-counter" id="fav-toggle">
+            <i class="fa-solid fa-heart"></i>
+            <span id="fav-count">0</span>
+        </div>
+    </header>
+
+    <div id="card-container">
+        </div>
+
+    <script>
+        // 1. Persiapan Data (31 Kartu)
+        const messages = [
+            `happy iftar ya sayaangkuuu, hope all the goods come to you :))
+            thank you for letting me be the one you run to when things get heavy yaa sygg :)) I always keep these arms open for you, surely :))
+            rep>> Aamiin🥰 Happy breakfasting jugaa buat masku sayaang🤗❣️`, 
+            `selamaat berbukaa ya sayaangnya mas, may the foods bring you happiness, warmth and all the good things :))
+            rep>> Hihii yeayy selamaaat berbuka puasa jugaa mas🤗 Aamiin, mas juga yaa semoga banyak keberkahan menyertai mas hari ini😊`,
+            `syelamaat berbukaa ya kesayangannya mass, may the warmth food make your heart warmth tooo sayangg 🤗🥰❣️
+            rep>> Ahh meleleh ah akuu mas🫠 Thankyouu ya mas, selamat berbuka juga buat mas🥰 Semoga makanan yg masuk selalu bisa ngasih rasa syukur dan sehat buat mas🤗`, 
+            `selamaat berbukaa juga sayangnya mas, may the blessing and gratefulness fullfill your heart, my love :)) ❣️
+            rep>> Ameen, thankyou mas :))`,
+            `(bbuy dulu) Selamat berbuka puasa yaa mas🤗 Semoga keberkahan selalu menyelimuti kita, aamiin😊
+            (me) selamat berbukaa juga sayangnyaa mass, may the foods as a good and warmth as we met today yaaa hehe 🙈🤗🥰❣️`, 
+            `selamat berbuka sayangnya mas, may all food the food refuel your body and heart yaa, even though still not enough, Im here as always and do every best for you and for us, yaaa :)) selamaat mamaaam sayaangkuu hehe 🤗🥰❣️`,
+            `selamaat berbukaa yaa ayaangkuu, big thanks for tudeei, may the food give you brighter smile like when you with me :)
+            rep>> Thankyouu thankyouu and happy iftar too for youu masnya aku🤗 Mam yg banyak, istirahat yg cukup yaa yang :) ailuvyu2🤭`,
+            `Selamat berbuka yaa cantiknyaa sayangnya mas, may the food you eat bring nothing but health and immense gratitude to your heart... Enjoy your iftar yaa sayangg 🤗✨❣️`,
+            `selamaat berbukaa yaa sayangnya mas, whatever weight you carried today, let the food wash it away yaa... remember that my heart and my arms are always a safe place for you to rest. Eat well and be happy yaa sayangg :)) ❣️🤗`,
+            `happy iftar yaa kesayangannya mas, may your meal be as sweet and as comforting as your presence in my life... i hope all the tiredness from today melts away with the warmth of your food. Don't forget to be grateful for today yaa bbyy :)) ❣️`,
+            `selamaat berbuka ya sayaangnya akuu, may the food that we already bought bring you a lot happiness and grateful feeling, love you so much my beautiful lovely woman :)
+            rep>> Selamat berbuka puasa juga yaa mas :) Terimakasih banyaak atas kehangatan yg selalu mas hadirkan bersama yaa, gantengnya akuu :))`,
+            `syelamaat berbukaa yaa cantikku, may every bite of your food tonight refuel not just your energy, but also that beautiful soul of yours... thank you for being the highlight of my day, as always :)) Enjoy your meal yaa sayangg 🤗🥰❣️`,
+            `selamat berbuka puasa yaa sayangku, I hope the peace of this evening fills your heart just like you fill mine with so much love... may the blessings overflow for you today and always 🤗🥰`,
+            `happy iftar my lovely one, I hope you can feel the warmth of my hugs in every meal and drinks... you deserve all the goodness and more. Selamat makan yaa cantiknya akuu 🥰❣️`,
+            `mas berbuka dulu yaa bbyy... I hate that I made your day harder. and I feel so heavy knowing Im the reason youre sad right now....
+
+eat well, and I'll be here whenever youre ready to smile again :)) I love youu kesayangan, cantiknya mas :)
+rep>> Iya mas, gpp. Selamat berbuka ya mas, semoga mas bahagia dan banyak keberkahannya :)`, 
+            `(bbuy dulu) Anyway, have a great iftar you there mas! Hope those warmth can help you to get better for your health yaa :))
+            (me)thankyou as always ma bbuyy, mas berbuka duluu, bby juga mam yg banyak, yg enak dan janlupaa istirahat yaa :))`,
+            `selamat berbukaa yaa keluarga disanaa, may the food bring all of you the warmth and happiness, especially for you, my dearest lovely one :')) ❣️
+            rep>>Thankyou mas, selamat berbuka puasa juga yaa mas disana :)`, 
+            `mas berbukaa duluu yaa, sayangnya mass :') thankyou so much for tudei as always and the joy of seeing you again after so long already fullfiling my heart hehe 🥹🫠
+            rep>>Selamat berbuka mas😊 Hope you feel moree better after breaking the fast tudeiii🤗`,
+            `bbyy, firstly I am so, so sorry for the weak response last night yaaa, not mean to ignoring or make it easy of your words, already many thought that I would put with my responses but, atleast need my energy back for our driving today :')
+
+You thanked my mom, but I’m the one who needs to thank the whole world for bringing *you* to me, such a grateful for me too :'))
+
+This journey, our journey hasnt just been lovely, its been the most meaningful part of my life because Im walking it with you, bbyy :))
+
+Surely my biggest hope, my wishes is us, you know that :')
+
+I’ll take care of my health and I’ll definitely be careful on the road and stop speeding, because I know I have the most precious person that really really care to me, thanks yaaa :')
+
+I know exactly what your expression when said fall in love over again, that make me so shy, happy and heartmelt at the same time. I'd just constantly discovering new reasons to adore you everytime we meet and fall for you more every time we talk, every time we laugh too :)) hehe
+
+I’m so challanging for what the future holds for us, to fight for us that make all of these works and Im so glad we’re in this together. You mean the world to me, and I can't wait to give you the biggest hug soon too :)
+
+
+I love you, my dearest beloved woman :') 🌹💌`, 
+            `mas berbuka duluu yaa, sayaangnyaaa masss :))
+            Today was beyond perfect, but I know it didnt just 'happen.' I can only imagine the heart, time, and secret planning you put into making me feel this special. Thank you for every little detail, but honestly... as amazing as the surprise was, the best part of my entire birthday was simply having you by my side. Youre the greatest gift Ive ever received :')) 🤗🥰❣️`,
+            `syelamaat berbukaa yaa cantiknya mas, may the first bite of your food tonight ease all the tiredness from your busy day... you did amazing today, and I’m always so proud of you. Selamat mamaam yaa sayangkuuu 🤗🥰❣️`, 
+            `happy iftar sayangnyaa mass :)), may the food tonight be a source of strength and pure gratitude for you... I’m always rooting for you and your happiness, no matter what. Enjoy your meal and don’t forget to smile, because you deserve all the good things today! 🥰✨❣️`,
+            `selamaat berbuka yaa kesayangannya mas, may the food tonight refuel not just your body, but your happiness too... thank you for being the person who always makes my day brighter just by being you. Enjoy your iftar and eat well yaa cantiknya mass 🥰❣️🤗`,
+            `to the hardworking and stroong woman who somehow still finds the energy to have the most beautiful, meaningful talks with me... you are incredible :')) 
+
+today was long, but you made it through with such grace. As you break your fast, I hope your heart feels as full and warm as youve made mine feel today...
+
+happy iftar, my very beloveed woman 🥹❣️`, 
+            `Selamat berbuka, kesayangannya mas... 🤗🥰❣️
+
+Im still carrying those words you said to me earlier in my heart is the most beautiful thing Ivee ever been told and makes every second of that meeting you is worth it of the every steps of it :))
+ 
+I know saying goodbye was hard and it left a little ache in your heart, but please dont be sad. Let the sweetness of your iftar tonight remind you of how much I adore you. even though Im not physically there to break my fast with you, my heart hasn't left your side for a second :'))`,
+            `happyyy Iftar to the one who’s been on my mind all day. even with everything going on, you were the constantly one in my head 😌🙂↕️
+
+I'm missing you so much right now, but it’s the good kind of missing, the kind that makes me even more excited for tomorrow... 😊
+
+eat well, enjoy the peace of the evening and rest well my beautiful lovely one, rahmahku sayaang :)) 🤗🥰❣️`, 
+            `Selamaat berbukaaa, my lovevlydoveeey one 🤗🥰❣️
+
+Im breaking my fast with a heart that still smiling from our long drive today. Thank you for making those miles feel like minutes honestly, it was the best part of my day 🥹 
+
+Ive been missing you since the moment we parked, but Im holding onto that feeling of being right next to you. Eat well, and rest up, because I can’t wait to do it all over again when I see you tomorrow :'))❣️
+
+psstt.... youre soooo beautiful since the start 🙊👀🥰🤗❣️`,
+            `since our time a bit different, at you should be 17.52, the kultum come sooner :))
+            selamaaaat berbukaaa, kesayangannya mas selaluuu :')) 🤗☺️❣️
+
+I hope you have a comfortable spot on the train to enjoy your break. Im still feeling so touched by our time together today, it was hard to let go of your hand, ofc :') 
+
+Break your fast well, stay safe, and text me when you can. I miss you more than words can say myy bbybuyyku :))
+
+love you thousands, millions, billions, till the numbers cant contain my love to youu :'))`, 
+            `selamaat berbukaa kesayangankuuu 🤗🥰❣️
+
+I hope youre finally sitting down and enjoying your meal after that massive to do list you had today yaaa ☺️
+
+I just want you to be okay and well rested too :))
+
+to be honest, missing you has been the main thing on my mind today, but dont worry I kept my mind that we both fine each others know what we feel too :))
+
+I love you to the moon and back, my dearest 🌙🤗🥰❣️`,
+            `Selamat berbuka to my dearest beautiful lovelydovey woman 🤗🥰❣️
+
+As the sun sets on my very last day of Ramadan, my heart is completely overflowing with thoughts of you. Because my Eid is tomorrow, the first thing I want to do is ask for your forgiveness... :'))
+
+From the absolute bottom of my heart, please forgive me for all my mistakes, for any times I might have fallen short, and for any moments the distance made me less than the perfect 'partner' you deserve... 🥹
+
+I also want to say thank you... Thank you for every single beautiful moment we shared, for your endless patience, and for holding my hand even from so far away 🤗🥰❣️ 
+
+I know youve been so incredibly busy lately and honestly, my soul aches with how much I miss your warmth and your presence... 
+
+But even in this quietness between us, you are the only one I want. Please eat well tonight, my love, and good luck with your final fast tomorrow. I am so profoundly grateful to know and have you :')
+
+I love you, rahmah :)❣️🌹`, 
+            `Selamaaat berbukaaa, sayangnyaa mas banget banget 🫠🤗🥰❣️
+
+As you sit down for your very last iftar today, Im sending you all the love and warmth I have 🤗
+
+I know we've had less time lately, and I want you to know that waiting for you, being patient for you, and loving you through the silence is a privilege I choose over and over again... :')
+
+Please eat well tonight and rest your beautiful soul. One more sleep until your Eid. I am so lucky to be yours and I am missing you more than words can ever describe, everrr...
+
+They say a fever makes you restless, but honestly, it’s just made me realize that you are the only 'medicine' I want. I’ve spent the day imagining your hand on my forehead and your voice telling me it’ll be okay. I miss you so much, bbyy...
+
+Thank you for being my strength even when you're busy... I’ll be counting down the minutes until your Eid tomorrow, maybe your smile will be the thing that finally breaks this fever. I love you endlessly... 🥹❣️🌹`,
+            `Selamat Idul Fitri, my beautiful lovely woman and strongest little girl ever who holds my entire heart :')
+
+Since its our 'first' Eid, on this sacred morning, I want to ask for your sincere forgiveness, for all my mistakes, the times I was clingy, or the times I didn't understand you, us. I am so far from perfect, but I am so perfectly yours (I hope) hehe :')
+
+Im deeply missing you and just want to be near you, like reallyy hhe :') and tell you in person how much I adore you, how beautiful you are as always :))
+
+I hope your day is as beautiful as your heart, bbybuyykuu ☺️🥰  Enjoy every moment of your Eid, my lovelydoveey... ☺️🤗
+
+I love you endlessly, yesterday, today, and for every Eid to come... :))
+Yours :) ❣️🌹`
+        ];
+
+        // Fungsi untuk menghasilkan warna pastel acak
+        function getRandomPastelColor() {
+            const hue = Math.floor(Math.random() * 360);
+            return `hsl(${hue}, 70%, 85%)`;
+        }
+        
+        // Fungsi untuk menghasilkan dekorasi bunga unik berbasis SVG
+        // Fungsi Super Acak untuk menghasilkan 3 jenis motif berbeda
+        function generateUniquePattern(baseHue) {
+            // Acak jenis pola: 0 (Bunga), 1 (Gelembung/Polkadot), 2 (Geometris)
+            const patternType = Math.floor(Math.random() * 3); 
+            let svgContent = '';
+            
+            // Warna elemen transparan putih dan warna aksen samar
+            const color1 = `rgba(255, 255, 255, 0.5)`;
+            const color2 = `hsla(${(baseHue + 40) % 360}, 70%, 80%, 0.4)`;
+
+            if (patternType === 0) {
+                // 🌸 TIPE 1: BUNGA (Panjang & lebar kelopak diacak)
+                const numPetals = Math.floor(Math.random() * 5) + 4; // 4 - 8 kelopak
+                const petalLength = Math.floor(Math.random() * 25) + 15; // Panjang 15-40
+                const petalWidth = Math.floor(Math.random() * 10) + 5; // Lebar 5-15
+                
+                let petals = '';
+                for (let i = 0; i < numPetals; i++) {
+                    const angle = (i * 360) / numPetals;
+                    petals += `<ellipse cx="50" cy="${50 - petalLength/2}" rx="${petalWidth}" ry="${petalLength/2}" fill="${color1}" transform="rotate(${angle} 50 50)" />`;
+                }
+                svgContent = petals + `<circle cx="50" cy="50" r="${petalWidth}" fill="${color2}" />`;
+
+            } else if (patternType === 1) {
+                // 🫧 TIPE 2: GELEMBUNG ABSTRAK (Posisi dan ukuran lingkaran diacak)
+                const r1 = Math.floor(Math.random() * 20) + 10;
+                const r2 = Math.floor(Math.random() * 15) + 5;
+                const r3 = Math.floor(Math.random() * 10) + 5;
+                
+                svgContent = `
+                    <circle cx="20" cy="20" r="${r1}" fill="${color1}" />
+                    <circle cx="80" cy="70" r="${r2}" fill="${color2}" />
+                    <circle cx="40" cy="90" r="${r3}" fill="${color1}" />
+                    <circle cx="90" cy="30" r="${r2}" fill="${color1}" />
+                `;
+
+            } else {
+                // 🔶 TIPE 3: GEOMETRIS (Bentuk belah ketupat/kotak miring acak)
+                const size1 = Math.floor(Math.random() * 25) + 15;
+                const size2 = Math.floor(Math.random() * 15) + 10;
+                
+                svgContent = `
+                    <rect x="${50 - size1/2}" y="${50 - size1/2}" width="${size1}" height="${size1}" fill="${color1}" transform="rotate(45 50 50)" />
+                    <rect x="10" y="10" width="${size2}" height="${size2}" fill="${color2}" transform="rotate(20 10 10)" />
+                    <rect x="75" y="80" width="${size1}" height="${size1}" fill="${color1}" transform="rotate(70 80 80)" />
+                `;
+            }
+
+            const svgStr = `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+                    ${svgContent}
+                </svg>
+            `;
+            return `url('data:image/svg+xml;utf8,${encodeURIComponent(svgStr)}')`;
+        }
+        
+        // Membuat array objek kartu
+        let cardsData = [];
+        for (let i = 0; i < 31; i++) {
+            const hue = Math.floor(Math.random() * 360); 
+            const bgColor = `hsl(${hue}, 70%, 85%)`; 
+            
+            // Panggil fungsi pola yang baru
+            const bgPattern = generateUniquePattern(hue); 
+            
+            // ACAK UKURAN POLA (antara 60px hingga 160px)
+            const bgSize = Math.floor(Math.random() * 100) + 60; 
+
+            cardsData.push({
+                id: i + 1,
+                text: messages[i] || `Ucapan ke-${i + 1}`,
+                color: bgColor,
+                pattern: bgPattern,
+                patternSize: `${bgSize}px`, // Simpan ukuran acak ini
+                isLoved: false
+            });
+        }
+
+        let showFavoritesOnly = false;
+        const container = document.getElementById('card-container');
+        const favCountEl = document.getElementById('fav-count');
+        const favToggleBtn = document.getElementById('fav-toggle');
+
+        // 2. Fungsi untuk Render Kartu
+        function renderCards() {
+            container.innerHTML = '';
+            
+            // Filter data berdasarkan status tombol header
+            const cardsToRender = showFavoritesOnly 
+                ? cardsData.filter(c => c.isLoved) 
+                : cardsData;
+
+            if (cardsToRender.length === 0) {
+                container.innerHTML = `<div class="empty-state">Belum ada kartu ucapan yang difavoritkan.</div>`;
+                return;
+            }
+
+            cardsToRender.forEach(card => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'card-wrapper';
+                
+                // (Di dalam fungsi renderCards)
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                cardEl.style.backgroundColor = card.color;
+                cardEl.style.backgroundImage = card.pattern;
+                
+                // TAMBAHKAN BARIS INI:
+                cardEl.style.backgroundSize = card.patternSize;
+
+                cardEl.innerHTML = `
+                    <button class="love-btn ${card.isLoved ? 'loved' : ''}" onclick="toggleLove(${card.id}, this)">
+                        <i class="fa-solid fa-heart"></i>
+                    </button>
+                    <div class="card-text">${card.text}</div>
+                    <div class="card-number">${card.id} / 32</div>
+                `;
+
+                wrapper.appendChild(cardEl);
+                container.appendChild(wrapper);
+            });
+        }
+
+        // 3. Fungsi untuk Toggle Love pada Kartu
+        window.toggleLove = function(id, btnElement) {
+            const cardIndex = cardsData.findIndex(c => c.id === id);
+            cardsData[cardIndex].isLoved = !cardsData[cardIndex].isLoved;
+            
+            // Animasi tombol
+            if(cardsData[cardIndex].isLoved) {
+                btnElement.classList.add('loved');
+            } else {
+                btnElement.classList.remove('loved');
+                // Jika sedang mode filter dan kartu di-unlike, render ulang agar kartu hilang
+                if(showFavoritesOnly) {
+                    setTimeout(() => renderCards(), 300); // delay sedikit untuk efek visual
+                }
+            }
+            updateCounter();
+        }
+
+        // 4. Update Angka di Header
+        function updateCounter() {
+            const lovedCount = cardsData.filter(c => c.isLoved).length;
+            favCountEl.innerText = lovedCount;
+        }
+
+        // 5. Event Listener untuk Tombol Header
+        favToggleBtn.addEventListener('click', () => {
+            showFavoritesOnly = !showFavoritesOnly;
+            
+            if(showFavoritesOnly) {
+                favToggleBtn.classList.add('active');
+            } else {
+                favToggleBtn.classList.remove('active');
+            }
+            
+            renderCards();
+        });
+
+        // Inisialisasi awal
+        renderCards();
+        updateCounter();
+    </script>
+</body>
+</html>
