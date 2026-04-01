@@ -406,6 +406,17 @@ Yours :) ❣️🌹`
             });
         }
 
+        // 1. Ambil data favorit yang tersimpan di memori browser
+        const savedFavorites = JSON.parse(localStorage.getItem('kartuFavoritKu')) || [];
+        
+        // 2. Terapkan status favorit ke data kartu saat ini
+        cardsData.forEach(card => {
+            if (savedFavorites.includes(card.id)) {
+                card.isLoved = true;
+            }
+        });
+        // -------------------------
+
         let showFavoritesOnly = false;
         const container = document.getElementById('card-container');
         const favCountEl = document.getElementById('fav-count');
@@ -455,6 +466,11 @@ Yours :) ❣️🌹`
         window.toggleLove = function(id, btnElement) {
             const cardIndex = cardsData.findIndex(c => c.id === id);
             cardsData[cardIndex].isLoved = !cardsData[cardIndex].isLoved;
+
+            // Simpan daftar ID kartu yang di-love ke memori browser
+            const favoritedIds = cardsData.filter(c => c.isLoved).map(c => c.id);
+            localStorage.setItem('kartuFavoritKu', JSON.stringify(favoritedIds));
+            // -------------------------------
             
             // Animasi tombol
             if(cardsData[cardIndex].isLoved) {
